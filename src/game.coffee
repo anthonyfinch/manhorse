@@ -20,19 +20,44 @@ class Game
     @animFrame.call(@window, @tick)
 
   update: () =>
-    @mode.update(@dt)
+    @level.update(@dt)
 
   start: (level, canvas_id) ->
-    @mode = new level(@window, canvas_id)
+    @level = new level(@window, canvas_id)
     @tick()
     console.log "started"
   
-class Level
+class Eventer
+  @_listeners = {}
+
+  addListener: (type, listener) ->
+    if @_listeners[type]?
+      @_listeners[type] = []
+
+    @_listeners[type].push(listener)
+
+  trigger: (event) ->
+    if typeof event "string"
+      event = { type: event }
+    if not event.target
+      event.target = this
+    if @_listeners[event.type] instanceOf Array
+      listeners = @_listeners[event.type]
+      listener.call(this, event) for listener in listeners
+
+   removeListener: (type, listener) ->
+     if @_listeners[type] instanceOf Array
+       listeners = @_listeners[type]
+       for key, listener_in in listeners
+         if listener_in listener
+           listeners[key...key+1]
+
+class Level extends Eventer
 	constructor: (window, canvas_id) ->
     @window = window
     @canvas = document.getElementById canvas_id
     @ctx = @initcanvas()
-    @setup
+    @setup()
   
   initcanvas: () ->
     @canvas.getContext('2d')
@@ -45,16 +70,35 @@ class Level
 
 class Intro extends Level
   setup: () ->
+    @map = new Map(intro_layout)
     console.log "Intro set up"
 
   update: (dt) ->
     @fps = Math.round(1000/dt)
-    console.log @fps
-    @ctx.save()
-    @ctx.fillStyle = "rgb(200, 200, 200)"
+    @ctx.clearRect(0, 0, 200, 200)
     @ctx.font = "Bold 20px Monospace"
     @ctx.fillText("#{@fps} FPS", 10, 20)
-    @ctx.restore()
+
+intro_layout = {
+  tiles: [
+    [a] = "../images/sprite1.png"
+  ]
+  layout: [
+    [a,a,a,a,a,a],
+    [a,a,a,a,a,a]
+  ]
+}
+
+class Map
+  constructor: (layout)->
+    @layout = layout
+    @load()
+
+  load: () ->
+    @tiles = @layout.tiles
+    console.log 'Loading Tile Images'
+    for key, imgSrc in @tiles
+      console.log 'Loading tile ' + key + 'src = ' + imgSrc
 
 main = new Game
 main.start(Intro, 'game')
